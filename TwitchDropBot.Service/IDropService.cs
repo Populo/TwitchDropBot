@@ -75,13 +75,11 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
 
     private EmbedBuilder CreateAnnounceEmbed(Drop drop)
     {
-        var embed =  new EmbedBuilder()
+        var embed = new EmbedBuilder()
             .WithColor(Color.Parse("6441a5"))
             .WithThumbnailUrl(drop.gameBoxArtURL)
             .WithTitle("New Drops!")
-            .AddField("Game", drop.gameDisplayName)
-            .AddField("Start", $"<t:{DateTimeOffset.Parse(DateTime.Parse(drop.startAt).ToLongDateString()).ToUnixTimeSeconds()}:R>")
-            .AddField("End", $"<t:{DateTimeOffset.Parse(DateTime.Parse(drop.endAt).ToLongDateString()).ToUnixTimeSeconds()}:R>");
+            .AddField("Game", drop.gameDisplayName);
 
         var campaigns = drop.rewards.Aggregate("", (current, r) => current + $"{r.name}\n"); 
         embed.AddField("Campaigns", campaigns.Trim());
@@ -95,7 +93,9 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
             .WithTitle(campaign.name)
             .WithColor(Color.Parse("6441a5"))
             .WithThumbnailUrl(campaign.imageURL)
-            .WithUrl(campaign.detailsURL);
+            .WithUrl(campaign.detailsURL)
+            .AddField("Start", $"<t:{DateTimeOffset.Parse(DateTime.Parse(campaign.startAt).ToLongDateString()).ToUnixTimeSeconds()}:R>")
+            .AddField("End", $"<t:{DateTimeOffset.Parse(DateTime.Parse(campaign.endAt).ToLongDateString()).ToUnixTimeSeconds()}:R>");
 
         foreach (var r in campaign.timeBasedDrops)
         {
