@@ -10,7 +10,6 @@ using Quartz.Simpl;
 using Serilog;
 using TwitchDropBot.Bot.Quartz;
 using TwitchDropBot.Service;
-using ILogger = Serilog.ILogger;
 
 namespace TwitchDropBot.Bot;
 
@@ -83,6 +82,11 @@ public class Bot
     
     private static IServiceProvider CreateProvider()
     {
+        var config = new DiscordSocketConfig()
+        {
+            GatewayIntents = GatewayIntents.GuildMessages
+        };
+        
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Verbose()
             .WriteTo.Console(
@@ -97,6 +101,7 @@ public class Bot
         var collection = new ServiceCollection();
 
         collection
+            .AddSingleton(config)
             .AddSingleton<DiscordSocketClient>()
             .AddTransient<QuartzJob>() // Register QuartzJob
             .AddTransient<IDropService>(provider =>
