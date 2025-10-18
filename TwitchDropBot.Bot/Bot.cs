@@ -28,6 +28,12 @@ public class Bot
 
     private async Task RunAsync()
     {
+        AppDomain.CurrentDomain.UnhandledException += async (_, e) =>
+        {
+            _logger.LogError("{UnhandledExceptionEventArgs}\n{EExceptionObject}", e, e.ExceptionObject);
+            await PostError($"Unhandled exception: {e.ExceptionObject}");
+        };
+        
         var provider = CreateProvider();
         _services = provider;
         

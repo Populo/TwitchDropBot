@@ -71,7 +71,12 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         {
             var channel = await discordRestClient.GetChannelAsync(ulong.Parse(channelId)) as ITextChannel
                 ?? throw new Exception("Channel not found");
-            await channel.SendMessageAsync(embeds: embeds.ToArray());
+            var message = await channel.SendMessageAsync(embeds: embeds.ToArray());
+            try
+            {
+                await message.CrosspostAsync();
+            }
+            catch {} // exception if non news channel, dont care
         }
     }
 
