@@ -17,7 +17,7 @@ public class QuartzJob(
         logger.LogInformation("Got {dropsCount} drops", drops.Count);
         foreach (var drop in drops)
         {
-            await dropService.PostDrop(ulong.Parse(configuration["postChannel"]!), drop);
+            await dropService.PostDrop(configuration["postChannel"], drop);
         }
     }
 }

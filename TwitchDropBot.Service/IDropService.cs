@@ -11,7 +11,7 @@ public interface IDropService
 {
     Task<ICollection<Drop>> GetDrops();
     bool HasSeenCampaign(Rewards drop);
-    Task PostDrop(ulong channelId, Drop drop);
+    Task PostDrop(string channels, Drop drop);
 }
 
 public class DropService(ILogger<DropService> logger, DiscordRestClient discordRestClient)
@@ -40,11 +40,8 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         return db.Drops.Any(d => d.CampaignName == drop.name);
     }
 
-    public async Task PostDrop(ulong channelId, Drop drop)
+    public async Task PostDrop(string channels, Drop drop)
     {
-        var channel = await discordRestClient.GetChannelAsync(channelId) as ITextChannel
-            ?? throw new Exception("Channel not found");
-
         await using var db = new DropContext();
         
         List<Embed> embeds = [];
@@ -70,7 +67,12 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         
         await db.SaveChangesAsync();
         _logger.LogInformation("Posting {game} drops", drop.gameDisplayName);
-        await channel.SendMessageAsync(embeds: embeds.ToArray());
+        foreach (var channelId in channels.Split(','))
+        {
+            var channel = await discordRestClient.GetChannelAsync(ulong.Parse(channelId)) as ITextChannel
+                ?? throw new Exception("Channel not found");
+            await channel.SendMessageAsync(embeds: embeds.ToArray());
+        }
     }
 
     private EmbedBuilder CreateAnnounceEmbed(Drop drop)
