@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchDropBot.Service", "TwitchDropBot.Service\TwitchDropBot.Service.csproj", "{044DCA84-5D78-474E-AF16-55982EC7C582}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchDropBot.Data", "TwitchDropBot.Data\TwitchDropBot.Data.csproj", "{0BDFB3EE-CC2E-4DD9-8053-950F5C24AC5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchDropBot.Bot", "TwitchDropBot.Bot\TwitchDropBot.Bot.csproj", "{C4EADCFD-AEF4-4552-B117-C4B5DDA4F9C0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{479F27FB-C4A6-4E9A-8814-B265680E666A}"
+	ProjectSection(SolutionItems) = preProject
+		compose.yaml = compose.yaml
+		secrets\botToken.txt = secrets\botToken.txt
+		secrets\dbPass.txt = secrets\dbPass.txt
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{044DCA84-5D78-474E-AF16-55982EC7C582}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{044DCA84-5D78-474E-AF16-55982EC7C582}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{044DCA84-5D78-474E-AF16-55982EC7C582}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{044DCA84-5D78-474E-AF16-55982EC7C582}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BDFB3EE-CC2E-4DD9-8053-950F5C24AC5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BDFB3EE-CC2E-4DD9-8053-950F5C24AC5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BDFB3EE-CC2E-4DD9-8053-950F5C24AC5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BDFB3EE-CC2E-4DD9-8053-950F5C24AC5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4EADCFD-AEF4-4552-B117-C4B5DDA4F9C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4EADCFD-AEF4-4552-B117-C4B5DDA4F9C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4EADCFD-AEF4-4552-B117-C4B5DDA4F9C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4EADCFD-AEF4-4552-B117-C4B5DDA4F9C0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

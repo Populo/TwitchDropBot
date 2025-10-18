@@ -1,0 +1,16 @@
+﻿services:
+  twitchdropbot.bot:
+    image: twitchdropbot.bot
+    container_name: TwitchDropBot
+    build:
+      context: .
+      dockerfile: TwitchDropBot.Bot/Dockerfile
+    restart: unless-stopped
+    secrets:
+      - botToken
+      - dbPass
+secrets:
+  botToken:
+    file: ./secrets/botToken.txt
+  dbPass:
+    file: ./secrets/dbPass.txt
