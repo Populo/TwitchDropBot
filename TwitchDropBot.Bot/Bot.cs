@@ -65,7 +65,7 @@ public class Bot
             .Build();
         _trigger = TriggerBuilder.Create()
             .WithIdentity("QuartzTrigger", "Twitch")
-            .WithSimpleSchedule(x => x.WithIntervalInHours(6).RepeatForever())
+            .WithSimpleSchedule(x => x.WithIntervalInHours(2).RepeatForever())
             .Build();
         await _scheduler.ScheduleJob(_job, _trigger);
     }
