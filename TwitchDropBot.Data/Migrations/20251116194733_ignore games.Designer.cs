@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TwitchDropBot.Data;
 
@@ -11,13 +12,15 @@ using TwitchDropBot.Data;
 namespace TwitchDropBot.Data.Migrations
 {
     [DbContext(typeof(DropContext))]
-    partial class DropContextModelSnapshot : ModelSnapshot
+    [Migration("20251116194733_ignore games")]
+    partial class ignoregames
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "8.0.21")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -35,42 +38,25 @@ namespace TwitchDropBot.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("GameId")
-                        .HasColumnType("nvarchar(450)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("StartAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameId");
-
                     b.ToTable("Drops");
                 });
 
-            modelBuilder.Entity("TwitchDropBot.Data.Game", b =>
+            modelBuilder.Entity("TwitchDropBot.Data.Ignore", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("Game")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<bool>("Ignored")
-                        .HasColumnType("bit");
+                    b.HasKey("Game");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Games");
-                });
-
-            modelBuilder.Entity("TwitchDropBot.Data.DropDto", b =>
-                {
-                    b.HasOne("TwitchDropBot.Data.Game", "Game")
-                        .WithMany()
-                        .HasForeignKey("GameId");
-
-                    b.Navigation("Game");
+                    b.ToTable("IgnoredGames");
                 });
 #pragma warning restore 612, 618
         }

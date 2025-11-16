@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using RestSharp;
 using TwitchDropBot.Data;
 using TwitchDropBot.Service.Models;
+using Game = TwitchDropBot.Data.Game;
 
 namespace TwitchDropBot.Service;
 
@@ -11,7 +12,8 @@ public interface IDropService
 {
     Task<ICollection<Drop>> GetDrops();
     bool HasSeenCampaign(Rewards drop);
-    Task PostDrop(string channels, Drop drop);
+    Task PostDrop(List<string> channels, Drop drop);
+    Task<Game> IgnoreGame(string gameName, bool ignore = true);
 }
 
 public class DropService(ILogger<DropService> logger, DiscordRestClient discordRestClient)
@@ -40,7 +42,7 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         return db.Drops.Any(d => d.CampaignName == drop.name);
     }
 
-    public async Task PostDrop(string channels, Drop drop)
+    public async Task PostDrop(List<string> channels, Drop drop)
     {
         await using var db = new DropContext();
         
@@ -49,16 +51,41 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         embeds.Add(infoEmbed);
         foreach (var campaign in drop.rewards)
         {
+            var game = db.Games.FirstOrDefault(g => g.Id == drop.gameId);
+            
+            if (null == game)
+            {
+                game = new Game()
+                {
+                    Id = drop.gameId,
+                    Name = drop.gameDisplayName,
+                    Ignored = false
+                };
+                db.Games.Add(game);
+                
+                await db.SaveChangesAsync();
+            }
+
+            if (game.Name != drop.gameDisplayName)
+            {
+                game.Name = drop.gameDisplayName;
+                await db.SaveChangesAsync();
+            }
+            
             if (HasSeenCampaign(campaign)) continue;
             
             db.Drops.Add(new DropDto()
             {
                 Id = campaign.id,
                 CampaignName = campaign.name,
-                GameId = drop.gameId,
+                Game = game,
                 EndAt = DateTime.Parse(campaign.endAt),
                 StartAt = DateTime.Parse(campaign.startAt)
             });
+            
+            // add to db even if we arent posting because were ignoring it
+            if (game.Ignored) continue;
+            
             embeds.Add(CreateDropEmbed(campaign).Build());
         }
 
@@ -67,7 +94,7 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         
         await db.SaveChangesAsync();
         _logger.LogInformation("Posting {game} drops", drop.gameDisplayName);
-        foreach (var channelId in channels.Split(','))
+        foreach (var channelId in channels)
         {
             var channel = await discordRestClient.GetChannelAsync(ulong.Parse(channelId)) as ITextChannel
                 ?? throw new Exception("Channel not found");
@@ -110,5 +137,16 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         }
 
         return embed;
+    }
+    
+    public async Task<Game> IgnoreGame(string gameId, bool ignore = true)
+    {
+        await using var db = new DropContext();
+        var game = db.Games.FirstOrDefault(g => g.Id == gameId)
+            ?? throw new Exception("Game not found");
+        
+        game.Ignored = ignore;
+        await db.SaveChangesAsync();
+        return game;
     }
 }

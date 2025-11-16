@@ -8,6 +8,7 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Simpl;
 using Serilog;
+using TwitchDropBot.Bot.Helpers;
 using TwitchDropBot.Bot.Quartz;
 using TwitchDropBot.Service;
 
@@ -17,7 +18,6 @@ public class Bot
 {
     private ILogger<Bot> _logger;
     private DiscordSocketClient _client;
-    private IConfiguration _configuration;
     
     private IScheduler _scheduler;
     private IServiceProvider _services;
@@ -37,7 +37,6 @@ public class Bot
         var provider = CreateProvider();
         _services = provider;
         
-        _configuration = provider.GetRequiredService<IConfiguration>();
         _logger = provider.GetRequiredService<ILogger<Bot>>();
         _client = provider.GetRequiredService<DiscordSocketClient>();
         
@@ -45,9 +44,24 @@ public class Bot
         
         _client.Log += ClientOnLog;
         _client.Ready += ClientOnReady;
+        _client.SlashCommandExecuted += async command =>
+        {
+            _logger.LogInformation("Command {CommandName} executed", command.Data.Name);
+            switch (command.CommandName)
+            {
+                case "ignore":
+                    await Commands.Commands.IgnoreGame(command, _client);
+                    break;
+                case "ignored-games":
+                    await Commands.Commands.ListGames(command, true);
+                    break;
+                case "allowed-games":
+                    await Commands.Commands.ListGames(command, false);
+                    break;
+            }
+        };
         
         await _client.LoginAsync(TokenType.Bot, token);
-        await _client.SetGameAsync("for the goods", type: ActivityType.Watching);
         await _client.StartAsync();
         
         _logger.LogInformation("Started");
@@ -56,6 +70,12 @@ public class Bot
 
     private async Task ClientOnReady()
     {
+        // register commands
+        _logger.LogInformation($"Updating commands");
+        _logger.LogTrace(string.Join(" | ", Commands.Commands.CommandBuilders.Select(c => c.Name)));
+        await _client.BulkOverwriteGlobalApplicationCommandsAsync(
+            Commands.Commands.CommandBuilders.Select(b => b.Build()).ToArray<ApplicationCommandProperties>());
+        
         _scheduler = await StdSchedulerFactory.GetDefaultScheduler();
         _scheduler.JobFactory =
             new MicrosoftDependencyInjectionJobFactory(_services, new OptionsWrapper<QuartzOptions>(null));
@@ -67,6 +87,7 @@ public class Bot
             .WithIdentity("QuartzTrigger", "Twitch")
             .WithSimpleSchedule(x => x.WithIntervalInHours(2).RepeatForever())
             .Build();
+        
         await _scheduler.ScheduleJob(_job, _trigger);
     }
 
@@ -122,18 +143,13 @@ public class Bot
             configuration.ClearProviders();
             configuration.AddSerilog();
         });
-        
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false);
-        collection.AddSingleton<IConfiguration>(builder.Build());
 
         return collection.BuildServiceProvider();
     }
 
     private async Task PostError(string message)
     {
-        var channel = await _client.GetChannelAsync(ulong.Parse(_configuration["errorChannel"]!)) as ITextChannel
+        var channel = await _client.GetChannelAsync(BotConfiguration.ErrorChannel) as ITextChannel
             ?? throw new Exception("Error channel not found");
         await channel.SendMessageAsync(message);
     }
