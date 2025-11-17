@@ -10,7 +10,7 @@ public static class Commands
 {
     #region Builders
     
-    private static SlashCommandBuilder ignoreBuilder = new()
+    private static readonly SlashCommandBuilder IgnoreBuilder = new()
     {
         Name = "ignore",
         Description = "Ignore or unignore game drops from being sent to the channel",
@@ -34,20 +34,20 @@ public static class Commands
         }
     };
     
-    private static SlashCommandBuilder ignoredGamesBuilder = new()
+    private static readonly SlashCommandBuilder IgnoredGamesBuilder = new()
     {
         Name = "ignored-games",
         Description = "Show a list of all ignored games",
     };
     
-    private static SlashCommandBuilder nonIgnoredGamesBuilder = new()
+    private static readonly SlashCommandBuilder NonIgnoredGamesBuilder = new()
     {
         Name = "allowed-games",
         Description = "Show a list of all allowed games",
     };
 
-    public static List<SlashCommandBuilder> CommandBuilders =
-        [ignoreBuilder, ignoredGamesBuilder, nonIgnoredGamesBuilder];
+    public static readonly List<SlashCommandBuilder> CommandBuilders =
+        [IgnoreBuilder, IgnoredGamesBuilder, NonIgnoredGamesBuilder];
 
     #endregion
     
@@ -87,11 +87,11 @@ public static class Commands
         await using var db = new DropContext();
         var games = db.Games.Where(g => g.Ignored == ignored).ToList();
 
-        var message = games.Any()
-            ? string.Join("\n", games.Select(g => $"`{g.Name}`"))
+        var message = games.Count != 0
+            ? string.Join("\n", games.OrderBy(g => g.Name).Select(g => $"`{g.Name}`"))
             : "No games found.";
         
-        await arg.FollowupAsync(message);
+        await arg.FollowupAsync(message, ephemeral: true);
     }
     
     #endregion
