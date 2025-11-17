@@ -23,6 +23,8 @@ public class Bot
     private IServiceProvider _services;
     private ITrigger _trigger;
     private IJobDetail _job;
+    
+    private readonly Version _version = new Version(2025, 11, 16);
 
     static async Task Main(string[] args) => await new Bot().RunAsync();
 
@@ -61,7 +63,9 @@ public class Bot
             }
         };
         
+        
         await _client.LoginAsync(TokenType.Bot, token);
+        await _client.SetGameAsync($"v{_version}");
         await _client.StartAsync();
         
         _logger.LogInformation("Started");
