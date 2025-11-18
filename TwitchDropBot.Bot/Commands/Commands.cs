@@ -55,10 +55,10 @@ public static class Commands
     
     public static async Task IgnoreGame(SocketSlashCommand arg, DiscordSocketClient client)
     {
-        await arg.DeferAsync();
+        await arg.DeferAsync(ephemeral: true);
         if (!IsAllowed(arg.User.Id))
         {
-            await arg.RespondAsync("You are not allowed to use this command", ephemeral: true);
+            await arg.FollowupAsync("You are not allowed to use this command", ephemeral: true);
             var channel = await client.GetChannelAsync(BotConfiguration.ErrorChannel) as ITextChannel
                 ?? throw new Exception("Error channel not found");
             
@@ -77,12 +77,12 @@ public static class Commands
         game!.Ignored = ignore;
         await db.SaveChangesAsync();
         
-        await arg.FollowupAsync($"Game {game.Name} {(ignore ? "ignored" : "allowed")}");
+        await arg.FollowupAsync($"Game {game.Name} {(ignore ? "ignored" : "allowed")}", ephemeral: true);
     }
 
     public static async Task ListGames(SocketSlashCommand arg, bool ignored)
     {
-        await arg.DeferAsync();
+        await arg.DeferAsync(ephemeral: true);
         
         await using var db = new DropContext();
         var games = db.Games.Where(g => g.Ignored == ignored).ToList();
