@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,13 +17,14 @@ public class Bot
 {
     private ILogger<Bot> _logger;
     private DiscordSocketClient _client;
+    private IBotService _botService;
     
     private IScheduler _scheduler;
     private IServiceProvider _services;
     private ITrigger _trigger;
     private IJobDetail _job;
     
-    private readonly Version _version = new Version(2025, 11, 18);
+    private readonly Version _version = new Version(2025, 11, 20);
 
     static async Task Main(string[] args) => await new Bot().RunAsync();
 
@@ -33,7 +33,7 @@ public class Bot
         AppDomain.CurrentDomain.UnhandledException += async (_, e) =>
         {
             _logger.LogError("{UnhandledExceptionEventArgs}\n{EExceptionObject}", e, e.ExceptionObject);
-            await PostError($"Unhandled exception: {e.ExceptionObject}");
+            await _botService.SendToErrorAsync(BotConfiguration.ErrorChannels, $"Unhandled exception: {e.ExceptionObject}");
         };
         
         var provider = CreateProvider();
@@ -41,6 +41,7 @@ public class Bot
         
         _logger = provider.GetRequiredService<ILogger<Bot>>();
         _client = provider.GetRequiredService<DiscordSocketClient>();
+        _botService = provider.GetRequiredService<IBotService>();
         
         var token = (await File.ReadAllTextAsync("/run/secrets/botToken")).Trim();
         
@@ -49,16 +50,17 @@ public class Bot
         _client.SlashCommandExecuted += async command =>
         {
             _logger.LogInformation("Command {CommandName} executed", command.Data.Name);
+            var c = new Commands.Commands(_botService);
             switch (command.CommandName)
             {
                 case "ignore":
-                    await Commands.Commands.IgnoreGame(command, _client);
+                    await c.IgnoreGame(command, _client);
                     break;
                 case "ignored-games":
-                    await Commands.Commands.ListGames(command, true);
+                    await c.ListGames(command, true);
                     break;
                 case "allowed-games":
-                    await Commands.Commands.ListGames(command, false);
+                    await c.ListGames(command, false);
                     break;
             }
         };
@@ -105,7 +107,7 @@ public class Bot
             return;
         }
 
-        await PostError(
+        await _botService.SendToErrorAsync(BotConfiguration.ErrorChannels,
             $"Bot error:\n{arg.Exception.Message}\n\n{arg.Exception.InnerException?.StackTrace}\n\n{arg.Message}");
         _logger.LogError(1, arg.Exception, "Bot error:\n{ExMessage}\n\n{InnerStackTrace}", arg.Exception.Message,
             arg.Exception.InnerException?.StackTrace);
@@ -113,7 +115,7 @@ public class Bot
     
     private static IServiceProvider CreateProvider()
     {
-        var config = new DiscordSocketConfig()
+        var discordSocketConfig = new DiscordSocketConfig()
         {
             GatewayIntents = GatewayIntents.GuildMessages
         };
@@ -132,14 +134,25 @@ public class Bot
         var collection = new ServiceCollection();
 
         collection
-            .AddSingleton(config)
+            .AddSingleton(discordSocketConfig)
             .AddSingleton<DiscordSocketClient>()
             .AddTransient<QuartzJob>() // Register QuartzJob
+            .AddTransient<IBotService>(provider =>
+            {
+                var client = provider.GetRequiredService<DiscordSocketClient>();
+                return new BotService(client.Rest);
+            })
             .AddTransient<IDropService>(provider =>
         {
             var client = provider.GetRequiredService<DiscordSocketClient>();
             var logger = provider.GetRequiredService<ILogger<DropService>>();
-            return new DropService(logger, client.Rest);
+            var botService = provider.GetRequiredService<IBotService>();
+            return new DropService(logger, client.Rest, botService);
+        })
+            .AddSingleton<IBotService>(provider =>
+        {
+            var rest = provider.GetRequiredService<DiscordSocketClient>().Rest;
+            return new BotService(rest);
         });
 
         collection.AddLogging(configuration =>
@@ -149,12 +162,5 @@ public class Bot
         });
 
         return collection.BuildServiceProvider();
-    }
-
-    private async Task PostError(string message)
-    {
-        var channel = await _client.GetChannelAsync(BotConfiguration.ErrorChannel) as ITextChannel
-            ?? throw new Exception("Error channel not found");
-        await channel.SendMessageAsync(message);
     }
 }

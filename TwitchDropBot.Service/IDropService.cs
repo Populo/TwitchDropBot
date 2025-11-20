@@ -16,11 +16,10 @@ public interface IDropService
     Task<Game> IgnoreGame(string gameName, bool ignore = true);
 }
 
-public class DropService(ILogger<DropService> logger, DiscordRestClient discordRestClient)
+public class DropService(ILogger<DropService> logger, DiscordRestClient discordRestClient, IBotService botService)
     : IDropService
 {
     private readonly RestClient _client = new("https://twitch-drops-api.sunkwi.com/");
-    private readonly ILogger<DropService> _logger = logger;
 
     public async Task<ICollection<Drop>> GetDrops()
     {
@@ -59,9 +58,11 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
                 {
                     Id = drop.gameId,
                     Name = drop.gameDisplayName,
-                    Ignored = false
+                    Ignored = true
                 };
                 db.Games.Add(game);
+
+                await botService.SendToPostAsync(channels, "New game detected: " + game.Name + ". Auto ignored.", crosspost: false);
                 
                 await db.SaveChangesAsync();
             }
@@ -93,7 +94,7 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         if (embeds.Count == 1) return;
         
         await db.SaveChangesAsync();
-        _logger.LogInformation("Posting {game} drops", drop.gameDisplayName);
+        logger.LogInformation("Posting {game} drops", drop.gameDisplayName);
         foreach (var channelId in channels)
         {
             var channel = await discordRestClient.GetChannelAsync(ulong.Parse(channelId)) as ITextChannel

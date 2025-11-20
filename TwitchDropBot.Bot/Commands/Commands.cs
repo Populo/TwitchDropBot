@@ -1,12 +1,12 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using Microsoft.VisualBasic;
 using TwitchDropBot.Bot.Helpers;
 using TwitchDropBot.Data;
+using TwitchDropBot.Service;
 
 namespace TwitchDropBot.Bot.Commands;
 
-public static class Commands
+public class Commands(IBotService botService)
 {
     #region Builders
     
@@ -53,16 +53,15 @@ public static class Commands
     
     #region Command
     
-    public static async Task IgnoreGame(SocketSlashCommand arg, DiscordSocketClient client)
+    public async Task IgnoreGame(SocketSlashCommand arg, DiscordSocketClient client)
     {
         await arg.DeferAsync(ephemeral: true);
         if (!IsAllowed(arg.User.Id))
         {
             await arg.FollowupAsync("You are not allowed to use this command", ephemeral: true);
-            var channel = await client.GetChannelAsync(BotConfiguration.ErrorChannel) as ITextChannel
-                ?? throw new Exception("Error channel not found");
+            await botService.SendToErrorAsync(BotConfiguration.ErrorChannels,
+                $"User {arg.User.Username} tried to use Ignore command");
             
-            await channel.SendMessageAsync($"User {arg.User.Username} tried to use Ignore command");
             return;
         }
         
@@ -80,7 +79,7 @@ public static class Commands
         await arg.FollowupAsync($"Game {game.Name} {(ignore ? "ignored" : "allowed")}", ephemeral: true);
     }
 
-    public static async Task ListGames(SocketSlashCommand arg, bool ignored)
+    public async Task ListGames(SocketSlashCommand arg, bool ignored)
     {
         await arg.DeferAsync(ephemeral: true);
         
