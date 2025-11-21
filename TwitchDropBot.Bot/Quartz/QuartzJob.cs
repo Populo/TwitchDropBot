@@ -17,7 +17,7 @@ public class QuartzJob(
         logger.LogInformation("Got {dropsCount} drops", drops.Count);
         foreach (var drop in drops)
         {
-            await dropService.PostDrop(BotConfiguration.PostChannels, drop);
+            await dropService.PostDrop(drop);
         }
     }
 }

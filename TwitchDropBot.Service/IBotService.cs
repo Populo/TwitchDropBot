@@ -5,15 +5,16 @@ namespace TwitchDropBot.Service;
 
 public interface IBotService
 {
-    Task SendToPostAsync(List<string> channels, string message, Embed[]? embeds = null, bool crosspost = true);
-    Task SendToErrorAsync(List<string> channels, string message);
+    Task SendToPostAsync(string? message = null, Embed[]? embeds = null, bool crosspost = false);
+    Task SendToErrorAsync(string? message = null, Embed[]? embeds = null);
+    bool IsAdmin(ulong userId);
 }
 
-public class BotService(DiscordRestClient discordRestClient) : IBotService
+public class BotService(DiscordRestClient discordRestClient, List<string> notifyChannels, List<string> errorChannels, List<string> botAdmins) : IBotService
 {
-    public async Task SendToPostAsync(List<string> channels, string message, Embed[]? embeds = null, bool crosspost = true)
+    public async Task SendToPostAsync(string? message, Embed[]? embeds = null, bool crosspost = false)
     {
-        foreach (var channelId in channels)
+        foreach (var channelId in notifyChannels)
         {
             var channel = await discordRestClient.GetChannelAsync(ulong.Parse(channelId)) as ITextChannel
                           ?? throw new Exception("Channel not found");
@@ -33,13 +34,18 @@ public class BotService(DiscordRestClient discordRestClient) : IBotService
         }
     }
 
-    public async Task SendToErrorAsync(List<string> channels, string message)
+    public async Task SendToErrorAsync(string? message, Embed[]? embeds = null)
     {
-        foreach (var cId in channels)
+        foreach (var cId in errorChannels)
         {
             var channel = await discordRestClient.GetChannelAsync(ulong.Parse(cId)) as ITextChannel
                           ?? throw new Exception("Channel not found");
-            await channel.SendMessageAsync(message);
+            await channel.SendMessageAsync(message, embeds: embeds);
         }
+    }
+
+    public bool IsAdmin(ulong userId)
+    {
+        return botAdmins.Contains(userId.ToString());
     }
 }

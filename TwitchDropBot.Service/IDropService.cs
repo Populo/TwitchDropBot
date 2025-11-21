@@ -11,9 +11,9 @@ namespace TwitchDropBot.Service;
 public interface IDropService
 {
     Task<ICollection<Drop>> GetDrops();
-    bool HasSeenCampaign(Rewards drop);
-    Task PostDrop(List<string> channels, Drop drop);
-    Task<Game> IgnoreGame(string gameName, bool ignore = true);
+    Task PostDrop(Drop drop);
+    EmbedBuilder CreateAnnounceEmbed(Drop drop, bool ignoreSeen = true);
+    EmbedBuilder CreateDropEmbed(Rewards campaign);
 }
 
 public class DropService(ILogger<DropService> logger, DiscordRestClient discordRestClient, IBotService botService)
@@ -35,13 +35,13 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         }
     }
 
-    public bool HasSeenCampaign(Rewards drop)
+    private bool HasSeenCampaign(Rewards drop)
     {
         using var db = new DropContext();
         return db.Drops.Any(d => d.CampaignName == drop.name);
     }
 
-    public async Task PostDrop(List<string> channels, Drop drop)
+    public async Task PostDrop(Drop drop)
     {
         await using var db = new DropContext();
         
@@ -62,7 +62,7 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
                 };
                 db.Games.Add(game);
 
-                await botService.SendToPostAsync(channels, "New game detected: " + game.Name + ". Auto ignored.", crosspost: false);
+                await botService.SendToPostAsync("New game detected: " + game.Name + ". Auto ignored.", crosspost: false);
                 
                 await db.SaveChangesAsync();
             }
@@ -86,8 +86,17 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
             
             // add to db even if we arent posting because were ignoring it
             if (game.Ignored) continue;
-            
-            embeds.Add(CreateDropEmbed(campaign).Build());
+
+            // dont post if campaign is over
+            if (campaign.status.Equals("ACTIVE", StringComparison.InvariantCultureIgnoreCase))
+            {
+                embeds.Add(CreateDropEmbed(campaign).Build());
+            }
+            else
+            {
+                await botService.SendToErrorAsync(message: $"status not active.\n- game: {drop.gameDisplayName}\n- status: {campaign.status}", 
+                    embeds: [CreateDropEmbed(campaign).Build()]);
+            }
         }
 
         // no unposted campaigns? do nothing
@@ -95,20 +104,10 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
         
         await db.SaveChangesAsync();
         logger.LogInformation("Posting {game} drops", drop.gameDisplayName);
-        foreach (var channelId in channels)
-        {
-            var channel = await discordRestClient.GetChannelAsync(ulong.Parse(channelId)) as ITextChannel
-                ?? throw new Exception("Channel not found");
-            var message = await channel.SendMessageAsync(embeds: embeds.ToArray());
-            try
-            {
-                await message.CrosspostAsync();
-            }
-            catch {} // exception if non news channel, dont care
-        }
+        await botService.SendToPostAsync(embeds: embeds.ToArray(), crosspost: true);
     }
 
-    private EmbedBuilder CreateAnnounceEmbed(Drop drop)
+    public EmbedBuilder CreateAnnounceEmbed(Drop drop, bool ignoreSeen = true)
     {
         var embed = new EmbedBuilder()
             .WithColor(Color.Parse("6441a5"))
@@ -116,13 +115,20 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
             .WithTitle("New Drops!")
             .AddField("Game", drop.gameDisplayName);
 
-        var campaigns = drop.rewards.Aggregate("", (current, r) => current + $"{r.name}\n"); 
-        embed.AddField("Campaigns", campaigns.Trim());
+        var campaigns = drop.rewards.AsEnumerable();
+        if (ignoreSeen) campaigns = campaigns.Where(c => !HasSeenCampaign(c));
+        
+        var rewardsEnumerable = campaigns as Rewards[] ?? campaigns.ToArray();
+        var campaignText = rewardsEnumerable.Length != 0
+            ? rewardsEnumerable.Aggregate("", (current, r) => current + $"{r.name}\n") 
+            : "c"; 
+        
+        embed.AddField("Campaigns", campaignText);
 
         return embed;
     }
 
-    private EmbedBuilder CreateDropEmbed(Rewards campaign)
+    public EmbedBuilder CreateDropEmbed(Rewards campaign)
     {
         var embed = new EmbedBuilder()
             .WithTitle(campaign.name)
@@ -134,20 +140,23 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
 
         foreach (var r in campaign.timeBasedDrops)
         {
-            embed.AddField(r.name, $"{r.requiredMinutesWatched} minutes");
+            var isGift = r.requiredSubs > 0;
+            var isTime = r.requiredMinutesWatched > 0;
+            
+            var fieldText = "";
+            if (isTime)
+            {
+                fieldText = $"{r.requiredMinutesWatched} minutes";
+                if (isGift) fieldText += $" and {r.requiredSubs} subs";
+            }
+            else
+            {
+                fieldText = $"{r.requiredSubs} sub(s)";
+            }
+            
+            embed.AddField(r.name, fieldText);
         }
 
         return embed;
-    }
-    
-    public async Task<Game> IgnoreGame(string gameId, bool ignore = true)
-    {
-        await using var db = new DropContext();
-        var game = db.Games.FirstOrDefault(g => g.Id == gameId)
-            ?? throw new Exception("Game not found");
-        
-        game.Ignored = ignore;
-        await db.SaveChangesAsync();
-        return game;
     }
 }
