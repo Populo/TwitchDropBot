@@ -74,6 +74,12 @@ public class Commands(IBotService botService)
         if (null == game) await arg.FollowupAsync("Game not found", ephemeral: true);
         
         game!.Ignored = ignore;
+        if (!ignore)
+        {
+            // remove games to post after unignoring
+            db.Drops.RemoveRange(db.Drops.Where(d => d.Game.Id == game.Id));
+        }
+        
         await db.SaveChangesAsync();
         
         await arg.FollowupAsync($"Game {game.Name} {(ignore ? "ignored" : "allowed")}", ephemeral: true);
