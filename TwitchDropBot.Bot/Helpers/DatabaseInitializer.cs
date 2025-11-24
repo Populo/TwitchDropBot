@@ -38,7 +38,7 @@ public class DatabaseInitializer(ILogger<DatabaseInitializer> logger)
                 
                 // Create database if it doesn't exist
                 command.CommandText = $@"
-                    IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'db_twitchbot_dev')
+                    IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '{Environment.GetEnvironmentVariable("DbName")}')
                     BEGIN
                         CREATE DATABASE [{Environment.GetEnvironmentVariable("DbName")}];
                     END";
