@@ -1,20 +1,16 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿namespace TwitchDropBot.Bot.Helpers;
 
-namespace TwitchDropBot.Bot.Helpers;
 
 public static class BotConfiguration
 {
-    private static readonly IConfiguration _configuration;
-
-    static BotConfiguration()
+    private static List<string> GetConfiguredList(string envVarName, string errorMessage)
     {
-        _configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false)
-            .Build();
+        var value = Environment.GetEnvironmentVariable(envVarName)
+                    ?? throw new ArgumentNullException(envVarName, errorMessage);
+        return value.Split(',').ToList();
     }
-
-    public static List<string> PostChannels => _configuration["postChannels"]!.Split(',').ToList();
-    public static List<string> ErrorChannels => _configuration["errorChannels"]!.Split(',').ToList();
-    public static List<string> AdminUsers => _configuration["adminUsers"]!.Split(',').ToList();
+    
+    public static List<string> PostChannels => GetConfiguredList("PostChannelId", "Invalid post channel id. set value in compose file");
+    public static List<string> ErrorChannels => GetConfiguredList("ErrorChannelId", "Invalid error channel id. set value in compose file");
+    public static List<string> AdminUsers => GetConfiguredList("BotAdminUsers", "Invalid admin users. set value in compose file");
 }

@@ -9,6 +9,7 @@ using Quartz.Simpl;
 using Serilog;
 using TwitchDropBot.Bot.Helpers;
 using TwitchDropBot.Bot.Quartz;
+using TwitchDropBot.Data;
 using TwitchDropBot.Service;
 
 namespace TwitchDropBot.Bot;
@@ -38,16 +39,18 @@ public class Bot
             await _botService.SendToErrorAsync($"Unhandled exception: {e.ExceptionObject}");
         };
         
-        var provider = CreateProvider();
-        _services = provider;
+        _services = CreateProvider();
+        // ensure database exists
+        await _services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
         
-        _logger = provider.GetRequiredService<ILogger<Bot>>();
-        _client = provider.GetRequiredService<DiscordSocketClient>();
+        _logger = _services.GetRequiredService<ILogger<Bot>>();
+        _client = _services.GetRequiredService<DiscordSocketClient>();
         
-        _botService = provider.GetRequiredService<IBotService>();
-        _dropService = provider.GetRequiredService<IDropService>();
+        _botService = _services.GetRequiredService<IBotService>();
+        _dropService = _services.GetRequiredService<IDropService>();
         
-        var token = (await File.ReadAllTextAsync("/run/secrets/botToken")).Trim();
+        var token = Environment.GetEnvironmentVariable("BotToken") 
+                    ?? throw new Exception("Bot token not found. Set the token in compose.yml");
         
         _client.Log += ClientOnLog;
         _client.Ready += ClientOnReady;
@@ -166,7 +169,9 @@ public class Bot
         {
             var rest = provider.GetRequiredService<DiscordSocketClient>().Rest;
             return new BotService(rest, BotConfiguration.PostChannels, BotConfiguration.ErrorChannels, BotConfiguration.AdminUsers);
-        });
+        })
+            .AddDbContext<DropContext>()
+            .AddSingleton<DatabaseInitializer>();
 
         collection.AddLogging(configuration =>
         {

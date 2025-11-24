@@ -19,17 +19,9 @@
       <ProjectReference Include="..\TwitchDropBot.Service\TwitchDropBot.Service.csproj" />
     </ItemGroup>
     <ItemGroup>
-      <None Update="appsettings.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-    <ItemGroup>
       <Content Include="..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Helpers\" />
     </ItemGroup>
 
 </Project>
