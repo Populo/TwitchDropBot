@@ -13,7 +13,7 @@ Written for docker. Just create a compose.yml file and run it with `docker compo
 ```yaml
 services:
   twitchdropbot:
-    image: docker.populo.dev/twitchdrop:dev
+    image: docker.populo.dev/twitchdropbot:latest
     container_name: TwitchDropBot
     restart: unless-stopped
 #    depends_on:
