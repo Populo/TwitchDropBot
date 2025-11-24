@@ -27,7 +27,7 @@ public class Bot
     private ITrigger _trigger;
     private IJobDetail _job;
     
-    private readonly Version _version = new(2025, 11, 21, 1);
+    private readonly Version _version = new(2025, 11, 24, 1);
 
     private static async Task Main(string[] args) => await new Bot().RunAsync();
 
