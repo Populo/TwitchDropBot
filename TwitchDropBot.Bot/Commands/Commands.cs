@@ -146,16 +146,28 @@ public partial class Commands(IBotService botService, IDropService dropService)
         await arg.DeferAsync(ephemeral: true);
         var filterValue = (long)arg.Data.Options.First(o => o.Name == "filter").Value!;
         var filter = (IgnoredGamesFilter)filterValue; // comes in as a long for some reason
-        
-        await using var db = new DropContext();
-        var games = db.Games.AsQueryable();
+
+        List<string> games = [];
         if (filter != IgnoredGamesFilter.All)
+        { 
+            await using var db = new DropContext();
+            var dbGames = db.Games.AsQueryable();
+            games = dbGames
+                .Where(g => g.Ignored == (filter == IgnoredGamesFilter.Ignored))
+                .Select(g => g.Name)
+                .ToList();
+        }
+        else
         {
-            games = games.Where(g => g.Ignored == (filter == IgnoredGamesFilter.Ignored));
+            var apiGames = await dropService.GetDrops();
+            games = apiGames
+                .Where(g => g.rewards.Any(c => c.status == "ACTIVE"))
+                .Select(g => g.gameDisplayName)
+                .ToList();
         }
         
         var message = games.Any()
-            ? string.Join("\n", games.OrderBy(g => g.Name).Select(g => $"`{g.Name}`"))
+            ? string.Join("\n", games.OrderBy(g => g).Select(g => $"`{g}`"))
             : "No games found.";
         
         await arg.FollowupAsync(message, ephemeral: true);

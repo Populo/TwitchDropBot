@@ -4,7 +4,24 @@
 
 Checks an api that lists current twitch drops and posts them to a discord channel(s)
 
-## How to use
+## Commands
+
+- `/ignore Game: Call of Duty: Black Ops 7 Ignore: True|False`
+  - game name is somewhat forgiving but copy/pasting the name will always work best
+  - Requires admin (BotAdminUsers in compose.yml)
+- `/check-twitch`
+  - check api for new drops
+  - Requires admin
+- `/list-games filter: all|ignored|allowed`
+  - lists games according to the applied filter
+    - all = all games with active drops
+    - ignored = games that are ignored
+    - allowed = games that are not ignored
+- `/get-drops Game: Call of Duty: Black Ops 7`
+  - gets drops for a specific game
+  - same as /ignore, name is forgiving but copy/paste works best
+
+## How to run
 
 Written for docker. Just create a compose.yml file and run it with `docker compose up -d`
 
