@@ -62,7 +62,7 @@ public class DropService(ILogger<DropService> logger, DiscordRestClient discordR
                 };
                 db.Games.Add(game);
 
-                await botService.SendToPostAsync("New game detected: " + game.Name + ". Auto ignored.", crosspost: false);
+                await botService.SendToErrorAsync("New game detected: " + game.Name + ". Auto ignored.");
                 
                 await db.SaveChangesAsync();
             }
