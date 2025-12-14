@@ -1,4 +1,7 @@
-﻿# TwitchDropBot
+# Archived. Moved [HERE](https://git.populo.dev/dale/TwitchDropBot)
+ 
+ 
+ # TwitchDropBot
 
 ## What it does
 
